@@ -34,7 +34,7 @@ nodo* crearNodo(char nombre, int valHeuristica){
 	nodoTemp->expandidos = 0;
 	return nodoTemp;
 };
-
+// Funcion que imprime un mapa y sus nodos, irrelevante para la tarea
 void imprimirMapa(map<char, nodo*> mapaNodos){
 	for(int i=65; i<73; i++){						// 65=A 72=H en ascii
 		// it puntero a tupla<char, nodo*> del mapa
@@ -52,7 +52,7 @@ void imprimirMapa(map<char, nodo*> mapaNodos){
 		}
 	}
 };
-
+// Funcion que lee el archivo en formato .txt
 map<char, nodo*> leerArchivo(string entrada){
 	ifstream grafoEntrada(entrada);
 	if(!grafoEntrada){
@@ -94,26 +94,26 @@ map<char, nodo*> leerArchivo(string entrada){
 }
 
 pair<vector<nodo*>, int> dfs(map<char,nodo*> mapaNodos){
-	stack<nodo*> stackNodos;
-	stackNodos.push(mapaNodos.find(nodoIn)->second);
-	map<char, nodo*> visitados;
+	stack<nodo*> stackNodos;											// Hacemos un stack para implementar el metodo de busqueda dfs
+	stackNodos.push(mapaNodos.find(nodoIn)->second);					// Pusheamos el nodo inicial
+	map<char, nodo*> visitados;											// Creamos un mapa para guardar los nodos visitados
 	int costo = 0;
-	vector<nodo*> ruta;
+	vector<nodo*> ruta;													// Creamos un vector de nodos para retornar al final de la funcion
 	ruta.push_back(mapaNodos.find(nodoIn)->second);
 
 	while(!stackNodos.empty()){
 		nodo* nodoActual = stackNodos.top();
 		stackNodos.pop();
 		if(nodoActual->nombre == nodoFin){
-			return make_pair(ruta, costo);
+			return make_pair(ruta, costo);								// Si llegamos al nodo final retornamos el par<ruta, costo>
 		}
 
 		int num_vecinos = nodoActual->vecinos.size();
-		while(num_vecinos>0){
+		while(num_vecinos>0){											// Iteramos hasta encontrar (aleatoriamente) un vecino que cumpla las condiciones
 			int indice = rand()%num_vecinos;
 			nodo* nodoVecino = get<0>(nodoActual->vecinos[indice]);
-			if(visitados.count(nodoVecino->nombre) == 0){
-				costo += get<1>(nodoActual->vecinos[indice]);
+			if(visitados.count(nodoVecino->nombre) == 0){				// Si el vecino cumple las condiciones actualizamos costo, lo agregamos al stacK, al
+				costo += get<1>(nodoActual->vecinos[indice]);			// mapa de visitados y a la ruta, ademas de romper el ciclo while
 				nodoActual->expandidos++;
 				stackNodos.push(nodoVecino);
 				visitados[nodoVecino->nombre] = nodoVecino;
@@ -135,24 +135,25 @@ pair<vector<nodo*>, int> dfs(map<char,nodo*> mapaNodos){
 }
 
 pair<vector<nodo*>, int> bcu(map<char, nodo*> mapaNodos){
-	// pq<tipo_dato, contenedor_tipo_dato, comparador>
 	int costo = 0;
+	// Creamos una priority queue y un mapa de nodos visitados, luego añadimos el nodo inicial a la pq
+	// pq<tipo_dato, contenedor_tipo_dato, comparador>
 	priority_queue<pair<int, nodo*>, vector<pair<int, nodo*>>, greater<pair<int, nodo*>>> pq;
 	map<nodo*, pair<int, nodo*>> visitados;
-
 	pq.emplace(0, mapaNodos.find(nodoIn)->second);
+
 	while(!pq.empty()){
-		auto [costoActual, nodoActual] = pq.top();
+		auto [costoActual, nodoActual] = pq.top();				// Creamos variables para el costo y nodo actuales
 		pq.pop();
-		if(nodoActual->nombre == nodoFin){			// reconstruir camino
+		if(nodoActual->nombre == nodoFin){						// Si encontramos el nodo final reconstruimos la ruta
 			vector<nodo*> ruta;
-			costo = visitados[nodoActual].first;	// el costo final sera el costo acumulado del nodo final
+			costo = visitados[nodoActual].first;				// El costo final sera el costo acumulado del nodo final
 			while(nodoActual->nombre != nodoIn){
 				ruta.push_back(nodoActual);
 				nodoActual = visitados[nodoActual].second;
 			}
 			ruta.push_back(mapaNodos.find(nodoIn)->second);
-			reverse(ruta.begin(), ruta.end());
+			reverse(ruta.begin(), ruta.end());					// Debido a como sacamos los nodos, tenemos que invertir el iterador de inicio con el de fin
 			return make_pair(ruta, costo);
 		}
 		// Expandir nodos del nodoActual
@@ -168,26 +169,30 @@ pair<vector<nodo*>, int> bcu(map<char, nodo*> mapaNodos){
 			pq.emplace(newCosto, nodoVecino);
 		}
 	}
+	// En caso de que no se pille la ruta
 	return make_pair(vector<nodo*>(), -1);
 }
 
 pair<vector<nodo*>, int> greedy(map<char, nodo*> mapaNodos){
+	// Creamos un vector de nodo* e int para retornar en la funcion
 	vector<nodo*> ruta;
 	int costo = 0;
+	// creamos un nodo* para almacenar el nodo con el que se esta trabajando
 	nodo* nodoActual = mapaNodos.find(nodoIn)->second;
 	ruta.push_back(nodoActual);
 	while(true){
-		int LowerHeuristica = 2147483647;
+		int LowerHeuristica = 2147483647;											// INT_MAX, usamos esto para almacenar la heuristica con menor valor
 		int costoTemp = 0;
 		int numVecinos = nodoActual->vecinos.size();
-		nodo* nodoAExpandir = nodoActual->vecinos[0].first;
-		for(int i = 0; i<numVecinos; i++){
+		nodo* nodoAExpandir = nodoActual->vecinos[0].first;							// Creamos un segundo nodo* temporal, para hacer comparaciones
+		for(int i = 0; i<numVecinos; i++){											// Utilizamos el ciclo for para encontrar el vecino con menor heuristica
 			if(nodoActual->vecinos[i].first->heuristica < LowerHeuristica){
 				LowerHeuristica = nodoActual->vecinos[i].first->heuristica;
 				nodoAExpandir = nodoActual->vecinos[i].first;
 				costoTemp = nodoActual->vecinos[i].second;
 			}
 		}
+		// Actualizamos el costo, añadimos el nodo a la ruta y elegimos al nodo vecino con menor heuristica para expandir
 		costo += costoTemp;
 		ruta.push_back(nodoAExpandir);
 		nodoActual->expandidos++;
@@ -200,7 +205,8 @@ pair<vector<nodo*>, int> greedy(map<char, nodo*> mapaNodos){
 }
 
 pair<vector<nodo*>, int> aEstrella(map<char, nodo*> mapaNodos){
-	priority_queue<nodo*, vector<nodo*>, comparaNodos> pq; 			// falta definir comparaNodos
+	// Creamos una pq, un mapa para guardar el valor g(h), un mapa para guardar el padres de un nodo e inicializamos valores
+	priority_queue<nodo*, vector<nodo*>, comparaNodos> pq;
 	map<nodo*, int> valorG;
 	map<nodo*, nodo*> padres;
 	nodo* nodoInicial = mapaNodos.find(nodoIn)->second;
@@ -214,6 +220,7 @@ pair<vector<nodo*>, int> aEstrella(map<char, nodo*> mapaNodos){
 			break;
 		}
 		for(const auto& vecino : nodoActual->vecinos){
+			// iteramos en los vecinos del nodo actual
 			nodo* nodoVecino = vecino.first;
 			int costo = vecino.second;
 			int nuevoValorG = valorG[nodoActual] + costo;
@@ -226,6 +233,7 @@ pair<vector<nodo*>, int> aEstrella(map<char, nodo*> mapaNodos){
 			}
 		}
 	}
+	// Reconstruimos la ruta
 	vector<nodo*> ruta;
 	nodo* nodoActual = mapaNodos.find(nodoFin)->second;
 	int costo = valorG[nodoActual];
